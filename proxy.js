@@ -9,14 +9,18 @@ const CACHE_DIR = path.join(__dirname, 'cache');
 const SECRET_KEY = process.env.SECRET_KEY || 'mysecret123';
 
 (async () => {
-    await fs.mkdir(CACHE_DIR, { recursive: true });
+    try {
+        await fs.mkdir(CACHE_DIR, { recursive: true });
+    } catch (error) {
+        console.error('Error creating cache directory:', error);
+    }
 })();
 
 app.get('/proxy', async (req, res) => {
     const videoUrl = req.query.url;
     const token = req.query.token;
     if (!videoUrl || !token) return res.status(400).send('Missing URL/token');
-    const expectedToken = CryptoJS.MD5(videoUrl + SECRET_KEY).toString(); // Use CryptoJS
+    const expectedToken = crypto.createHash('md5').update(videoUrl + SECRET_KEY).digest('hex');
     if (token !== expectedToken) return res.status(403).send('Unauthorized');
     const cacheKey = crypto.createHash('md5').update(videoUrl).digest('hex');
     const cachePath = path.join(CACHE_DIR, `${cacheKey}.mp4`);
